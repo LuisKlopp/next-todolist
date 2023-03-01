@@ -5,6 +5,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  console.log(req.body.data);
+  console.log(req.query.id);
   const noteId = req.query.id;
 
   if (req.method === 'DELETE') {
@@ -14,7 +16,18 @@ export default async function handler(
       },
     });
     res.json(note);
-  } else {
-    console.log('Note could not be created');
+  } else if (req.method === 'PUT') {
+    const { title, content, id } = req.body.data;
+    const note = await prisma.note.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        id,
+        title,
+        content,
+      },
+    });
+    res.json(note);
   }
 }

@@ -5,8 +5,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { title, content } = req.body;
-
+  const { title, content } = req.body.data;
   try {
     await prisma.note.create({
       data: {
@@ -14,8 +13,8 @@ export default async function handler(
         content,
       },
     });
-    res.status(200).json({ message: 'Note Created ' });
+    res.status(200).json({ message: 'Note Created' });
   } catch (error) {
-    console.log('Failure');
+    console.log(error);
   }
 }

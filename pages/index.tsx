@@ -1,8 +1,7 @@
-'use client';
 import { GetServerSideProps } from 'next';
-import Router from 'next/router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { prisma } from '../lib/prisma';
+import axios from 'axios';
 import { useRouter } from 'next/router';
 
 interface FormData {
@@ -12,15 +11,12 @@ interface FormData {
 }
 
 interface Notes {
-  notes: {
-    id: string;
-    title: string;
-    content: string;
-  }[];
+  notes: FormData[];
 }
 
 export default function Home({ notes }: Notes) {
   const router = useRouter();
+  const baseUrl = 'http://localhost:3000/api';
   const [form, setForm] = useState<FormData>({
     title: '',
     content: '',
@@ -32,41 +28,27 @@ export default function Home({ notes }: Notes) {
   };
 
   async function create(data: FormData) {
-    try {
-      fetch('http://localhost:3000/api/create', {
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      }).then(() => {
-        if (data.id) {
-          deleteNote(data.id);
-          setForm({ title: '', content: '', id: '' });
-          refreshData();
-        } else {
-          setForm({ title: '', content: '', id: '' });
-          refreshData();
-        }
-      });
-    } catch (error) {
-      console.log(error);
+    if (data.id) {
+      updateNote(data);
+      setForm({ title: '', content: '', id: '' });
+      return;
     }
+    await axios.post(`${baseUrl}/create`, { data }).then(() => {
+      setForm({ title: '', content: '', id: '' });
+      refreshData();
+    });
+  }
+
+  async function updateNote(data: FormData) {
+    await axios.put(`${baseUrl}/note/${data.id}`, { data }).then(() => {
+      refreshData();
+    });
   }
 
   async function deleteNote(id: string) {
-    try {
-      fetch(`http://localhost:3000/api/note/${id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'DELETE',
-      }).then(() => {
-        refreshData();
-      });
-    } catch (error) {
-      console.log(error);
-    }
+    await axios.delete(`${baseUrl}/note/${id}`).then(() => {
+      refreshData();
+    });
   }
 
   const handleSubmit = async (data: FormData) => {
@@ -147,7 +129,9 @@ export const getServerSideProps: GetServerSideProps = async () => {
       content: true,
     },
   });
-
+  notes.sort((a, b) => {
+    return a.id < b.id ? -1 : 1;
+  });
   return {
     props: {
       notes,
