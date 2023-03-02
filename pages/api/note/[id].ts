@@ -5,14 +5,11 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log(req.body.data);
-  console.log(req.query.id);
-  const noteId = req.query.id;
-
   if (req.method === 'DELETE') {
+    const id = req.query.id;
     const note = await prisma.note.delete({
       where: {
-        id: Number(noteId),
+        id: Number(id),
       },
     });
     res.json(note);

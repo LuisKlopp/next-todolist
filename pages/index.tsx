@@ -1,5 +1,5 @@
 import { GetServerSideProps } from 'next';
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { prisma } from '../lib/prisma';
 import axios from 'axios';
 import { useRouter } from 'next/router';
@@ -16,6 +16,7 @@ interface Notes {
 
 export default function Home({ notes }: Notes) {
   const router = useRouter();
+
   const baseUrl = 'http://localhost:3000/api';
   const [form, setForm] = useState<FormData>({
     title: '',
@@ -23,24 +24,29 @@ export default function Home({ notes }: Notes) {
     id: '',
   });
 
+  const onChange = <T extends HTMLInputElement | HTMLTextAreaElement>(
+    e: ChangeEvent<T>
+  ): void => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   const refreshData = () => {
     router.replace(router.asPath);
   };
 
-  async function create(data: FormData) {
+  async function createNote(data: FormData) {
     if (data.id) {
-      updateNote(data);
+      await axios.put(`${baseUrl}/note/${data.id}`, { data }).then(() => {
+        refreshData();
+      });
       setForm({ title: '', content: '', id: '' });
       return;
     }
     await axios.post(`${baseUrl}/create`, { data }).then(() => {
       setForm({ title: '', content: '', id: '' });
-      refreshData();
-    });
-  }
-
-  async function updateNote(data: FormData) {
-    await axios.put(`${baseUrl}/note/${data.id}`, { data }).then(() => {
       refreshData();
     });
   }
@@ -51,37 +57,32 @@ export default function Home({ notes }: Notes) {
     });
   }
 
-  const handleSubmit = async (data: FormData) => {
-    try {
-      create(data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
   return (
     <div>
-      <h1 className='text-center font-bold text-2xl mt-4'>Notes</h1>
+      <h1 className='text-center font-bold text-2xl mt-4'>To-Do-List</h1>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          handleSubmit(form);
+          createNote(form);
         }}
-        className='w-auto min-w-[25%] max-w-min mx-auto space-y-6 flex flex-col items-stretch'
+        className='w-auto min-w-[25%] max-w-min mx-auto space-y-6 flex flex-col items-stretch mt-10'
       >
         <input
           type='text'
           placeholder='Title'
+          name='title'
           value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          onChange={onChange}
           className='border-2 rounded border-gray-600 p-1'
         />
         <textarea
           placeholder='Content'
+          name='content'
           value={form.content}
-          onChange={(e) => setForm({ ...form, content: e.target.value })}
+          onChange={onChange}
           className='border-2 rounded border-gray-600 p-1'
         />
-        <button type='submit' className='bg-blue-500 text-white rounded p-1'>
+        <button type='submit' className='bg-gray-500 text-white rounded p-1'>
           Add +
         </button>
       </form>
@@ -96,7 +97,7 @@ export default function Home({ notes }: Notes) {
                 </div>
                 <button
                   onClick={() => deleteNote(note.id)}
-                  className='bg-red-500 px-3 text-white rounded'
+                  className='bg-red-700 px-3 text-white rounded'
                 >
                   X
                 </button>
@@ -108,7 +109,7 @@ export default function Home({ notes }: Notes) {
                       id: note.id,
                     })
                   }
-                  className='bg-blue-500 px-3 text-white rounded'
+                  className='bg-gray-500 px-3 ml-3 text-white rounded'
                 >
                   Update
                 </button>
